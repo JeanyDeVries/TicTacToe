@@ -24,6 +24,7 @@ public class GameController : MonoBehaviour
     private int turnsCounter; //Counts the number of turns played this game
     private int playerXScore, playerOScore;
     private int[] filledSpaces; //ID's which space is filled by which player
+    private bool isPlayerTurn = true;
 
     void Start()
     {
@@ -52,7 +53,7 @@ public class GameController : MonoBehaviour
     {
         turnIndicator = (turnIndicator == Turn.PLAYER) ? Turn.AI : Turn.PLAYER;
 
-        bool isPlayerTurn = (turnIndicator == Turn.PLAYER);
+        isPlayerTurn = (turnIndicator == Turn.PLAYER);
         turnIcons[0].SetActive(isPlayerTurn);
         turnIcons[1].SetActive(!isPlayerTurn);
     }
@@ -73,9 +74,27 @@ public class GameController : MonoBehaviour
                 winningPanel.gameObject.SetActive(true);
             }
         }
-
-        // Change turns
         ChangeTurn();
+
+        if(turnIndicator == Turn.AI)
+            StartCoroutine(AIMove());
+    }
+
+    IEnumerator AIMove()
+    {
+        yield return new WaitForSeconds(2);
+
+        List<int> optionalOptions = new List<int>();
+        for (int i = 0; i < filledSpaces.Length; i++)
+        {
+            if (filledSpaces[i] < 0) //space is empty
+            {
+                optionalOptions.Add(i);
+            }
+        }
+
+        int randomSpace = Random.Range(0, optionalOptions.Count);
+        TicTacToeSpaceClicked(optionalOptions[randomSpace]);
     }
 
     bool WinCheck()
@@ -123,7 +142,17 @@ public class GameController : MonoBehaviour
         {
             space.interactable = false;
         }
-    } 
+    }
+
+    // Call this method to update the interactability of the grid spaces
+    public void UpdateGridInteractability()
+    {
+        // Loop through each space in the grid and set its interactability based on whose turn it is
+        foreach (var space in gridSpaces)
+        {
+            space.interactable = isPlayerTurn;
+        }
+    }
 
     public void Rematch()
     {
