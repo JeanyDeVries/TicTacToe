@@ -33,10 +33,12 @@ public class GameController : MonoBehaviour
 
     void GameSetup()
     {
-        turnIndicator = 0; //X always starts at ticTacToe
+        turnIndicator = Turn.PLAYER; //X always starts at ticTacToe
         turnsCounter = 0;
         turnIcons[0].SetActive(true);
         turnIcons[1].SetActive(false);
+        isPlayerTurn = false;
+
         foreach (var space in gridSpaces)
         {
             space.interactable = true;
@@ -72,11 +74,17 @@ public class GameController : MonoBehaviour
             {
                 winningText.text = "DRAW";
                 winningPanel.gameObject.SetActive(true);
+                return;
+            }
+            else if(didPlayerWin)
+            {
+                return;
             }
         }
         ChangeTurn();
+        UpdateGridInteractability();
 
-        if(turnIndicator == Turn.AI)
+        if (turnIndicator == Turn.AI)
             StartCoroutine(AIMove());
     }
 
@@ -106,7 +114,7 @@ public class GameController : MonoBehaviour
         int solution5 = filledSpaces[1] + filledSpaces[4] + filledSpaces[7];
         int solution6 = filledSpaces[2] + filledSpaces[5] + filledSpaces[8];
         int solution7 = filledSpaces[0] + filledSpaces[4] + filledSpaces[8];
-        int solution8 = filledSpaces[0] + filledSpaces[4] + filledSpaces[6];
+        int solution8 = filledSpaces[2] + filledSpaces[4] + filledSpaces[6];
         var solutions = new int[] { solution1, solution2, solution3, solution4, solution5, solution6, solution7, solution8 };
         for (int i = 0; i < solutions.Length; i++)
         {
@@ -138,19 +146,19 @@ public class GameController : MonoBehaviour
 
         winningLines[indexSolution].SetActive(true);
 
-        foreach (var space in gridSpaces)
-        {
-            space.interactable = false;
-        }
+        isPlayerTurn = false;
+        UpdateGridInteractability();
     }
 
     // Call this method to update the interactability of the grid spaces
     public void UpdateGridInteractability()
     {
-        // Loop through each space in the grid and set its interactability based on whose turn it is
-        foreach (var space in gridSpaces)
+        for (int i = 0; i < filledSpaces.Length; i++)
         {
-            space.interactable = isPlayerTurn;
+            if (filledSpaces[i] < 0) //space is empty
+            {
+                gridSpaces[i].interactable = isPlayerTurn;
+            }
         }
     }
 

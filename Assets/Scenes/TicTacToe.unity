@@ -300,7 +300,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e5be9d6872bdc0f4cb41066daab17261, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  turnIndicator: 0
   playerSprites:
   - {fileID: 21300000, guid: 70d8e174398f88141aa056c9c8f4105d, type: 3}
   - {fileID: 21300000, guid: 13c27f66d2a48fe4a92aea18ac348f37, type: 3}
@@ -2945,7 +2944,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   m_Sprite: {fileID: 0}
-  m_Type: 1
+  m_Type: 0
   m_PreserveAspect: 0
   m_FillCenter: 1
   m_FillMethod: 4
