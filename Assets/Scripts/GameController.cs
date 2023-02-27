@@ -6,8 +6,12 @@ using UnityEngine.UI;
 
 public class GameController : MonoBehaviour
 {
-    [Tooltip("0 = player X and 1 = player O")]
-    [SerializeField] private int turnIndicator;
+    private enum Turn
+    {
+        PLAYER,
+        AI
+    }
+
     [SerializeField] private Sprite[] playerSprites;
     [SerializeField] private Button[] gridSpaces; //The spaces in the grid that can be clicked
     [SerializeField] private GameObject[] turnIcons; //Displays whose turn it is
@@ -16,6 +20,7 @@ public class GameController : MonoBehaviour
     [SerializeField] private GameObject[] winningLines; //All the lines for the possible winning outcomes
     [SerializeField] private TMP_Text xScoreTxt, oScoreTxt;
 
+    private Turn turnIndicator;
     private int turnsCounter; //Counts the number of turns played this game
     private int playerXScore, playerOScore;
     private int[] filledSpaces; //ID's which space is filled by which player
@@ -43,12 +48,21 @@ public class GameController : MonoBehaviour
         }
     }
 
+    void ChangeTurn()
+    {
+        turnIndicator = (turnIndicator == Turn.PLAYER) ? Turn.AI : Turn.PLAYER;
+
+        bool isPlayerTurn = (turnIndicator == Turn.PLAYER);
+        turnIcons[0].SetActive(isPlayerTurn);
+        turnIcons[1].SetActive(!isPlayerTurn);
+    }
+
     public void TicTacToeSpaceClicked(int gridNumber)
     {
-        gridSpaces[gridNumber].image.sprite = playerSprites[turnIndicator];
+        gridSpaces[gridNumber].image.sprite = playerSprites[(int)turnIndicator];
         gridSpaces[gridNumber].interactable = false;
 
-        filledSpaces[gridNumber] = turnIndicator+1; //Add +1 to prevent logic errors
+        filledSpaces[gridNumber] = (int)turnIndicator +1; //Add +1 to prevent logic errors
         turnsCounter++;
         if (turnsCounter > 4)
         {
@@ -61,18 +75,7 @@ public class GameController : MonoBehaviour
         }
 
         // Change turns
-        if (turnIndicator == 0)
-        {
-            turnIndicator = 1;
-            turnIcons[0].SetActive(false);
-            turnIcons[1].SetActive(true);
-        }
-        else
-        {
-            turnIndicator = 0;
-            turnIcons[0].SetActive(true);
-            turnIcons[1].SetActive(false);
-        }
+        ChangeTurn();
     }
 
     bool WinCheck()
@@ -88,7 +91,7 @@ public class GameController : MonoBehaviour
         var solutions = new int[] { solution1, solution2, solution3, solution4, solution5, solution6, solution7, solution8 };
         for (int i = 0; i < solutions.Length; i++)
         {
-            if (solutions[i] == 3 * (turnIndicator + 1))
+            if (solutions[i] == 3 * ((int)turnIndicator + 1))
             {
                 WinnerDisplay(i);
                 return true;
@@ -100,13 +103,13 @@ public class GameController : MonoBehaviour
 
     void WinnerDisplay(int indexSolution)
     {
-        if (turnIndicator == 0)
+        if (turnIndicator == Turn.PLAYER)
         {
             winningText.text = "Player X has won the game!";
             playerXScore++;
             xScoreTxt.text = playerXScore.ToString();
         }
-        else
+        else if (turnIndicator == Turn.AI)
         {
             winningText.text = "Play O has won the game!";
             playerOScore++;
