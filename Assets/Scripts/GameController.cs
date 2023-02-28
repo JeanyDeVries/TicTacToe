@@ -97,7 +97,7 @@ public class GameController : MonoBehaviour
             if (filledSpaces[i] < 0) //space is empty
             {
                 filledSpaces[i] = (int)Turn.AI + 1;
-                score = MiniMax(filledSpaces, turnIndicator, -1000, 1000);
+                score = MiniMax(filledSpaces, Turn.PLAYER, -1000, 1000);
                 filledSpaces[i] = -100;
                 if (bestScore < score)
                 {
@@ -140,7 +140,7 @@ public class GameController : MonoBehaviour
                     if (score > alpha)
                         alpha = score;
 
-                    if (alpha > beta)
+                   if (alpha > beta)
                         break;
                 }
             }
