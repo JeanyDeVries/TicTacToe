@@ -24,7 +24,6 @@ public class GameController : MonoBehaviour
     private int turnsCounter; //Counts the number of turns played this game
     private int playerXScore, playerOScore;
     private int[] filledSpaces; //ID's which space is filled by which player
-    private bool isPlayerTurn = true;
 
     void Start()
     {
@@ -37,7 +36,6 @@ public class GameController : MonoBehaviour
         turnsCounter = 0;
         turnIcons[0].SetActive(true);
         turnIcons[1].SetActive(false);
-        isPlayerTurn = false;
 
         foreach (var space in gridSpaces)
         {
@@ -55,7 +53,7 @@ public class GameController : MonoBehaviour
     {
         turnIndicator = (turnIndicator == Turn.PLAYER) ? Turn.AI : Turn.PLAYER;
 
-        isPlayerTurn = (turnIndicator == Turn.PLAYER);
+        bool isPlayerTurn = (turnIndicator == Turn.PLAYER);
         turnIcons[0].SetActive(isPlayerTurn);
         turnIcons[1].SetActive(!isPlayerTurn);
     }
@@ -93,36 +91,33 @@ public class GameController : MonoBehaviour
         yield return new WaitForSeconds(2);
 
         // Find the index of the best move for the AI
-        int bestMoveIndex = 0;
-        int bestMoveScore = int.MinValue;
+        int bestScore = -1, bestPos = -1, score;
         for (int i = 0; i < filledSpaces.Length; i++)
         {
             if (filledSpaces[i] < 0) //space is empty
             {
                 filledSpaces[i] = (int)Turn.AI + 1;
-                int moveScore = MiniMax(filledSpaces, turnIndicator, -1000, 1000);
+                score = MiniMax(filledSpaces, turnIndicator, -1000, 1000);
                 filledSpaces[i] = -100;
-                Debug.Log("move score : " + moveScore);
-                if (moveScore > bestMoveScore)
+                if (bestScore < score)
                 {
-                    bestMoveScore = moveScore;
-                    bestMoveIndex = i;
+                    bestScore = score;
+                    bestPos = i;
                 }
             }
         }
-        Debug.Log("best score : " + bestMoveScore);
-        TicTacToeSpaceClicked(bestMoveIndex);
+        TicTacToeSpaceClicked(bestPos);
     }
 
     int MiniMax(int[] gameState, Turn player, int alpha, int beta)
     {
         if (WinCheck(gameState, Turn.AI, true))
         {
-            return 1;
+            return +100;
         }
         else if (WinCheck(gameState, Turn.PLAYER, true))
         {
-            return -1;
+            return -100;
         }
         else if (IsBoardFull(gameState))
         {
@@ -229,7 +224,6 @@ public class GameController : MonoBehaviour
 
         winningLines[indexSolution].SetActive(true);
 
-        isPlayerTurn = false;
         UpdateGridInteractability();
     }
 
@@ -240,7 +234,7 @@ public class GameController : MonoBehaviour
         {
             if (filledSpaces[i] < 0) //space is empty
             {
-                gridSpaces[i].interactable = isPlayerTurn;
+                gridSpaces[i].interactable = (turnIndicator == Turn.PLAYER);
             }
         }
     }
