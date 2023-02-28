@@ -69,7 +69,7 @@ public class GameController : MonoBehaviour
         turnsCounter++;
         if (turnsCounter > 4)
         {
-            bool didPlayerWin = WinCheck();
+            bool didPlayerWin = WinCheck(filledSpaces, turnIndicator, false);
             if(turnsCounter >= 9 && !didPlayerWin)
             {
                 winningText.text = "DRAW";
@@ -92,40 +92,123 @@ public class GameController : MonoBehaviour
     {
         yield return new WaitForSeconds(2);
 
-        List<int> optionalOptions = new List<int>();
+        // Find the index of the best move for the AI
+        int bestMoveIndex = 0;
+        int bestMoveScore = int.MinValue;
         for (int i = 0; i < filledSpaces.Length; i++)
         {
             if (filledSpaces[i] < 0) //space is empty
             {
-                optionalOptions.Add(i);
+                filledSpaces[i] = (int)Turn.AI + 1;
+                int moveScore = MiniMax(filledSpaces, turnIndicator, -1000, 1000);
+                filledSpaces[i] = -100;
+                Debug.Log("move score : " + moveScore);
+                if (moveScore > bestMoveScore)
+                {
+                    bestMoveScore = moveScore;
+                    bestMoveIndex = i;
+                }
             }
         }
-
-        int randomSpace = Random.Range(0, optionalOptions.Count);
-        TicTacToeSpaceClicked(optionalOptions[randomSpace]);
+        Debug.Log("best score : " + bestMoveScore);
+        TicTacToeSpaceClicked(bestMoveIndex);
     }
 
-    bool WinCheck()
+    int MiniMax(int[] gameState, Turn player, int alpha, int beta)
     {
-        int solution1 = filledSpaces[0] + filledSpaces[1] + filledSpaces[2];
-        int solution2 = filledSpaces[3] + filledSpaces[4] + filledSpaces[5];
-        int solution3 = filledSpaces[6] + filledSpaces[7] + filledSpaces[8];
-        int solution4 = filledSpaces[0] + filledSpaces[3] + filledSpaces[6];
-        int solution5 = filledSpaces[1] + filledSpaces[4] + filledSpaces[7];
-        int solution6 = filledSpaces[2] + filledSpaces[5] + filledSpaces[8];
-        int solution7 = filledSpaces[0] + filledSpaces[4] + filledSpaces[8];
-        int solution8 = filledSpaces[2] + filledSpaces[4] + filledSpaces[6];
+        if (WinCheck(gameState, Turn.AI, true))
+        {
+            return 1;
+        }
+        else if (WinCheck(gameState, Turn.PLAYER, true))
+        {
+            return -1;
+        }
+        else if (IsBoardFull(gameState))
+        {
+            return 0;
+        }
+
+        int score;
+        int playerMark = (player == Turn.PLAYER) ? ((int)Turn.PLAYER + 1) : ((int)Turn.AI + 1);
+
+        if(player == Turn.AI)
+        {
+            for (int i = 0; i < gameState.Length; i++)
+            {
+                if (gameState[i] < 0) // Space is empty
+                {
+                    gameState[i] = playerMark;
+                    score = MiniMax(gameState, Turn.PLAYER, alpha, beta);
+                    gameState[i] = -100;
+
+                    if (score > alpha)
+                        alpha = score;
+
+                    if (alpha > beta)
+                        break;
+                }
+            }
+            return alpha;
+        }
+        else
+        {
+            for (int i = 0; i < gameState.Length; i++)
+            {
+                if (gameState[i] < 0) // Space is empty
+                {
+                    gameState[i] = playerMark;
+                    score = MiniMax(gameState, Turn.AI, alpha, beta);
+                    gameState[i] = -100;
+
+                    if (score < beta)
+                        beta = score;
+
+                    if (alpha > beta)
+                        break;
+                }
+            }
+            return beta;
+        }
+    }
+
+    bool WinCheck(int[] gameState, Turn player, bool checkAIScore)
+    {
+        int playerMark = (player == Turn.PLAYER) ? ((int)Turn.PLAYER + 1) : ((int)Turn.AI + 1);
+
+        int solution1 = gameState[0] + gameState[1] + gameState[2];
+        int solution2 = gameState[3] + gameState[4] + gameState[5];
+        int solution3 = gameState[6] + gameState[7] + gameState[8];
+        int solution4 = gameState[0] + gameState[3] + gameState[6];
+        int solution5 = gameState[1] + gameState[4] + gameState[7];
+        int solution6 = gameState[2] + gameState[5] + gameState[8];
+        int solution7 = gameState[0] + gameState[4] + gameState[8];
+        int solution8 = gameState[2] + gameState[4] + gameState[6];
         var solutions = new int[] { solution1, solution2, solution3, solution4, solution5, solution6, solution7, solution8 };
         for (int i = 0; i < solutions.Length; i++)
         {
-            if (solutions[i] == 3 * ((int)turnIndicator + 1))
+            if (solutions[i] == 3 * playerMark)
             {
-                WinnerDisplay(i);
+                if(!checkAIScore)
+                    WinnerDisplay(i);
                 return true;
             }
         }
 
         return false;
+    }
+
+    bool IsBoardFull(int[] gameState)
+    {
+        foreach (int space in gameState)
+        {
+            if (space < 0)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     void WinnerDisplay(int indexSolution)
