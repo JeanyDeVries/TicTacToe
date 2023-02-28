@@ -12,6 +12,13 @@ public class GameController : MonoBehaviour
         AI
     }
 
+    private enum Difficulty
+    { 
+        EASY,
+        UNBEATABLE
+    }
+
+    [SerializeField] private Difficulty difficulty; //The difficulty of the AI
     [SerializeField] private Sprite[] playerSprites;
     [SerializeField] private Button[] gridSpaces; //The spaces in the grid that can be clicked
     [SerializeField] private GameObject[] turnIcons; //Displays whose turn it is
@@ -20,9 +27,10 @@ public class GameController : MonoBehaviour
     [SerializeField] private GameObject[] winningLines; //All the lines for the possible winning outcomes
     [SerializeField] private TMP_Text xScoreTxt, oScoreTxt;
 
-    private Turn turnIndicator;
+    private Turn turnIndicator; //A variable that keeps track whose turn it is
     private int turnsCounter; //Counts the number of turns played this game
     private int playerXScore, playerOScore;
+    private const int EMPTY_SPACE = -100;  //Set the index for an empty space to -100, because 0 is the index of the player
     private int[] filledSpaces; //ID's which space is filled by which player
 
     void Start()
@@ -30,6 +38,9 @@ public class GameController : MonoBehaviour
         GameSetup();
     }
 
+    /// <summary>
+    /// A setup for the game, which sets the UI correct and set some values to the correct starting point.
+    /// </summary>
     void GameSetup()
     {
         turnIndicator = Turn.PLAYER; //X always starts at ticTacToe
@@ -45,19 +56,25 @@ public class GameController : MonoBehaviour
         filledSpaces = new int[gridSpaces.Length];
         for (int i = 0; i < filledSpaces.Length; i++)
         {
-            filledSpaces[i] = -100; //Set it to -100 instead of 0, because 0 means player X filled it in
+            filledSpaces[i] = EMPTY_SPACE;
         }
     }
 
+    /// <summary>
+    /// Change turns. 
+    /// </summary>
     void ChangeTurn()
     {
         turnIndicator = (turnIndicator == Turn.PLAYER) ? Turn.AI : Turn.PLAYER;
 
-        bool isPlayerTurn = (turnIndicator == Turn.PLAYER);
-        turnIcons[0].SetActive(isPlayerTurn);
-        turnIcons[1].SetActive(!isPlayerTurn);
+        turnIcons[0].SetActive(turnIndicator == Turn.PLAYER);
+        turnIcons[1].SetActive(turnIndicator == Turn.AI);
     }
 
+    /// <summary>
+    /// When a space is clicked, change the space with the turnIndicator and switch turns.
+    /// </summary>
+    /// <param name="gridNumber">This is the number of the buttons which are in the grid, the first one is 0 and the last one is 8.</param>
     public void TicTacToeSpaceClicked(int gridNumber)
     {
         gridSpaces[gridNumber].image.sprite = playerSprites[(int)turnIndicator];
@@ -65,19 +82,9 @@ public class GameController : MonoBehaviour
 
         filledSpaces[gridNumber] = (int)turnIndicator +1; //Add +1 to prevent logic errors
         turnsCounter++;
-        if (turnsCounter > 4)
+        if (turnsCounter > 4) //Only after 4 turns is it possible to win
         {
-            bool didPlayerWin = WinCheck(filledSpaces, turnIndicator, false);
-            if(turnsCounter >= 9 && !didPlayerWin)
-            {
-                winningText.text = "DRAW";
-                winningPanel.gameObject.SetActive(true);
-                return;
-            }
-            else if(didPlayerWin)
-            {
-                return;
-            }
+            if (CheckDraw()) return; //if there is a draw, no need to run the rest of the code
         }
         ChangeTurn();
         UpdateGridInteractability();
@@ -86,10 +93,63 @@ public class GameController : MonoBehaviour
             StartCoroutine(AIMove());
     }
 
+    /// <summary>
+    /// Checks to see if there has been a draw in the game.
+    /// </summary>
+    /// <returns>Returns true when there is a draw in the game.</returns>
+    bool CheckDraw()
+    {
+        bool didPlayerWin = WinCheck(turnIndicator, false);
+        if (turnsCounter < 9 || didPlayerWin) return false; //When the player won or all the spaces are not filled in yet, return false (no draw)
+
+        winningText.text = "DRAW";
+        winningPanel.gameObject.SetActive(true);
+        return true;
+    }
+
+    /// <summary>
+    /// Sets the move of what the AI should do
+    /// </summary>
     IEnumerator AIMove()
     {
-        yield return new WaitForSeconds(2);
+        yield return new WaitForSeconds(1);
 
+        switch (difficulty)
+        {
+            case Difficulty.EASY:
+                CalculateRandomOption(); 
+                break;
+            case Difficulty.UNBEATABLE:
+                CalculateBestOption();
+                break;
+            default:
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Calculates a random possible option and places the AI move there
+    /// </summary>
+    void CalculateRandomOption()
+    {
+        List<int> optionalOptions = new List<int>();
+        for (int i = 0; i < filledSpaces.Length; i++)
+        {
+            if (filledSpaces[i] < 0) //space is empty
+            {
+                optionalOptions.Add(i);
+            }
+        }
+
+        int randomSpace = Random.Range(0, optionalOptions.Count);
+        TicTacToeSpaceClicked(optionalOptions[randomSpace]);
+    }
+
+    /// <summary>
+    /// Calculates the best possible position using the minimax algorithm
+    /// </summary>
+    void CalculateBestOption()
+    {
         // Find the index of the best move for the AI
         int bestScore = -1, bestPos = -1, score;
         for (int i = 0; i < filledSpaces.Length; i++)
@@ -97,8 +157,8 @@ public class GameController : MonoBehaviour
             if (filledSpaces[i] < 0) //space is empty
             {
                 filledSpaces[i] = (int)Turn.AI + 1;
-                score = MiniMax(filledSpaces, Turn.PLAYER, -1000, 1000);
-                filledSpaces[i] = -100;
+                score = MiniMax(Turn.PLAYER, -1000, 1000);
+                filledSpaces[i] = EMPTY_SPACE;
                 if (bestScore < score)
                 {
                     bestScore = score;
@@ -109,17 +169,24 @@ public class GameController : MonoBehaviour
         TicTacToeSpaceClicked(bestPos);
     }
 
-    int MiniMax(int[] gameState, Turn player, int alpha, int beta)
+    /// <summary>
+    /// Calculates a score per route of the game. The score would be higher if it is more beneficial for the AI.
+    /// </summary>
+    /// <param name="player">The turn of the user, player or AI.</param>
+    /// <param name="alpha">The score of the best optimal option.</param>
+    /// <param name="beta">The score of the least optimal option.</param>
+    /// <returns>Returns a score of the outcome of the current option.</returns>
+    int MiniMax(Turn player, int alpha, int beta)
     {
-        if (WinCheck(gameState, Turn.AI, true))
+        if (WinCheck( Turn.AI, true))
         {
             return +100;
         }
-        else if (WinCheck(gameState, Turn.PLAYER, true))
+        else if (WinCheck(Turn.PLAYER, true))
         {
             return -100;
         }
-        else if (IsBoardFull(gameState))
+        else if (IsBoardFull())
         {
             return 0;
         }
@@ -129,13 +196,13 @@ public class GameController : MonoBehaviour
 
         if(player == Turn.AI)
         {
-            for (int i = 0; i < gameState.Length; i++)
+            for (int i = 0; i < filledSpaces.Length; i++)
             {
-                if (gameState[i] < 0) // Space is empty
+                if (filledSpaces[i] < 0) // Space is empty
                 {
-                    gameState[i] = playerMark;
-                    score = MiniMax(gameState, Turn.PLAYER, alpha, beta);
-                    gameState[i] = -100;
+                    filledSpaces[i] = playerMark;
+                    score = MiniMax(Turn.PLAYER, alpha, beta);
+                    filledSpaces[i] = EMPTY_SPACE;
 
                     if (score > alpha)
                         alpha = score;
@@ -148,13 +215,13 @@ public class GameController : MonoBehaviour
         }
         else
         {
-            for (int i = 0; i < gameState.Length; i++)
+            for (int i = 0; i < filledSpaces.Length; i++)
             {
-                if (gameState[i] < 0) // Space is empty
+                if (filledSpaces[i] < 0) // Space is empty
                 {
-                    gameState[i] = playerMark;
-                    score = MiniMax(gameState, Turn.AI, alpha, beta);
-                    gameState[i] = -100;
+                    filledSpaces[i] = playerMark;
+                    score = MiniMax(Turn.AI, alpha, beta);
+                    filledSpaces[i] = EMPTY_SPACE;
 
                     if (score < beta)
                         beta = score;
@@ -167,18 +234,24 @@ public class GameController : MonoBehaviour
         }
     }
 
-    bool WinCheck(int[] gameState, Turn player, bool checkAIScore)
+    /// <summary>
+    /// Checks if the last move caused the game to be finished with a win. 
+    /// </summary>
+    /// <param name="player">The turn of the user, player or AI.</param>
+    /// <param name="checkAIScore">A check to see if this method is called for a check for the AI, if not then it is a true win of the player or AI.</param>
+    /// <returns>Returns true when there is a win.</returns>
+    bool WinCheck(Turn player, bool checkAIScore)
     {
         int playerMark = (player == Turn.PLAYER) ? ((int)Turn.PLAYER + 1) : ((int)Turn.AI + 1);
 
-        int solution1 = gameState[0] + gameState[1] + gameState[2];
-        int solution2 = gameState[3] + gameState[4] + gameState[5];
-        int solution3 = gameState[6] + gameState[7] + gameState[8];
-        int solution4 = gameState[0] + gameState[3] + gameState[6];
-        int solution5 = gameState[1] + gameState[4] + gameState[7];
-        int solution6 = gameState[2] + gameState[5] + gameState[8];
-        int solution7 = gameState[0] + gameState[4] + gameState[8];
-        int solution8 = gameState[2] + gameState[4] + gameState[6];
+        int solution1 = filledSpaces[0] + filledSpaces[1] + filledSpaces[2];
+        int solution2 = filledSpaces[3] + filledSpaces[4] + filledSpaces[5];
+        int solution3 = filledSpaces[6] + filledSpaces[7] + filledSpaces[8];
+        int solution4 = filledSpaces[0] + filledSpaces[3] + filledSpaces[6];
+        int solution5 = filledSpaces[1] + filledSpaces[4] + filledSpaces[7];
+        int solution6 = filledSpaces[2] + filledSpaces[5] + filledSpaces[8];
+        int solution7 = filledSpaces[0] + filledSpaces[4] + filledSpaces[8];
+        int solution8 = filledSpaces[2] + filledSpaces[4] + filledSpaces[6];
         var solutions = new int[] { solution1, solution2, solution3, solution4, solution5, solution6, solution7, solution8 };
         for (int i = 0; i < solutions.Length; i++)
         {
@@ -193,9 +266,13 @@ public class GameController : MonoBehaviour
         return false;
     }
 
-    bool IsBoardFull(int[] gameState)
+    /// <summary>
+    /// Checks if all spaces are filled in the game. 
+    /// </summary>
+    /// <returns>Returns true all spaces are filled.</returns>
+    bool IsBoardFull()
     {
-        foreach (int space in gameState)
+        foreach (int space in filledSpaces)
         {
             if (space < 0)
             {
@@ -206,6 +283,9 @@ public class GameController : MonoBehaviour
         return true;
     }
 
+    /// <summary>
+    /// This method is to show the UI of the winner. 
+    /// </summary>
     void WinnerDisplay(int indexSolution)
     {
         if (turnIndicator == Turn.PLAYER)
@@ -227,7 +307,9 @@ public class GameController : MonoBehaviour
         UpdateGridInteractability();
     }
 
-    // Call this method to update the interactability of the grid spaces
+    /// <summary>
+    /// This method is to update the interactability of the grid spaces
+    /// </summary>
     public void UpdateGridInteractability()
     {
         for (int i = 0; i < filledSpaces.Length; i++)
@@ -239,6 +321,9 @@ public class GameController : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// This method sets all the settings to restart the round
+    /// </summary>
     public void Rematch()
     {
         GameSetup();
@@ -249,6 +334,9 @@ public class GameController : MonoBehaviour
         winningPanel.SetActive(false);
     }
 
+    /// <summary>
+    /// This method sets all the settings to restart the whole game
+    /// /// </summary>
     public void Restart()
     {
         Rematch();
