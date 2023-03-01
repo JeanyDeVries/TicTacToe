@@ -22,9 +22,9 @@ public class GameController : MonoBehaviour
     [SerializeField] private Sprite[] playerSprites;
     [SerializeField] private Button[] gridSpaces; //The spaces in the grid that can be clicked
     [SerializeField] private GameObject[] turnIcons; //Displays whose turn it is
+    [SerializeField] private GameObject[] winningLines; //All the lines for the possible winning outcomes
     [SerializeField] private GameObject winningPanel;
     [SerializeField] private TMP_Text winningText;
-    [SerializeField] private GameObject[] winningLines; //All the lines for the possible winning outcomes
     [SerializeField] private TMP_Text xScoreTxt, oScoreTxt;
 
     private Turn turnIndicator; //A variable that keeps track whose turn it is
@@ -61,17 +61,6 @@ public class GameController : MonoBehaviour
     }
 
     /// <summary>
-    /// Change turns. 
-    /// </summary>
-    void ChangeTurn()
-    {
-        turnIndicator = (turnIndicator == Turn.PLAYER) ? Turn.AI : Turn.PLAYER;
-
-        turnIcons[0].SetActive(turnIndicator == Turn.PLAYER);
-        turnIcons[1].SetActive(turnIndicator == Turn.AI);
-    }
-
-    /// <summary>
     /// When a space is clicked, change the space with the turnIndicator and switch turns.
     /// </summary>
     /// <param name="gridNumber">This is the number of the buttons which are in the grid, the first one is 0 and the last one is 8.</param>
@@ -94,20 +83,6 @@ public class GameController : MonoBehaviour
     }
 
     /// <summary>
-    /// Checks to see if there has been a draw in the game.
-    /// </summary>
-    /// <returns>Returns true when there is a draw in the game.</returns>
-    bool CheckDraw()
-    {
-        bool didPlayerWin = WinCheck(turnIndicator, true);
-        if (turnsCounter < 9 || didPlayerWin) return false; //When the player won or all the spaces are not filled in yet, return false (no draw)
-
-        winningText.text = "DRAW";
-        winningPanel.gameObject.SetActive(true);
-        return true;
-    }
-
-    /// <summary>
     /// Sets the move of what the AI should do
     /// </summary>
     IEnumerator AIMove()
@@ -126,6 +101,20 @@ public class GameController : MonoBehaviour
                 break;
         }
     }
+
+    /// <summary>
+    /// Change turns. 
+    /// </summary>
+    void ChangeTurn()
+    {
+        turnIndicator = (turnIndicator == Turn.PLAYER) ? Turn.AI : Turn.PLAYER;
+
+        turnIcons[0].SetActive(turnIndicator == Turn.PLAYER);
+        turnIcons[1].SetActive(turnIndicator == Turn.AI);
+    }
+
+
+    #region AI calculations
 
     /// <summary>
     /// Calculates a random possible option and places the AI move there
@@ -178,7 +167,7 @@ public class GameController : MonoBehaviour
     /// <returns>Returns a score of the outcome of the current option.</returns>
     int MiniMax(Turn player, int alpha, int beta)
     {
-        if (WinCheck( Turn.AI, false))
+        if (WinCheck(Turn.AI, false))
         {
             return +100;
         }
@@ -194,7 +183,7 @@ public class GameController : MonoBehaviour
         int score;
         int playerMark = (player == Turn.PLAYER) ? ((int)Turn.PLAYER + 1) : ((int)Turn.AI + 1);
 
-        if(player == Turn.AI)
+        if (player == Turn.AI)
         {
             for (int i = 0; i < filledSpaces.Length; i++)
             {
@@ -207,7 +196,7 @@ public class GameController : MonoBehaviour
                     if (score > alpha)
                         alpha = score;
 
-                   if (alpha > beta)
+                    if (alpha > beta)
                         break;
                 }
             }
@@ -234,6 +223,10 @@ public class GameController : MonoBehaviour
         }
     }
 
+    #endregion
+
+    #region Board status checks
+
     /// <summary>
     /// Checks if the last move caused the game to be finished with a win. 
     /// </summary>
@@ -257,13 +250,27 @@ public class GameController : MonoBehaviour
         {
             if (solutions[i] == 3 * playerMark)
             {
-                if(showWinnerDisplay)
+                if (showWinnerDisplay)
                     WinnerDisplay(i);
                 return true;
             }
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Checks to see if there has been a draw in the game.
+    /// </summary>
+    /// <returns>Returns true when there is a draw in the game.</returns>
+    bool CheckDraw()
+    {
+        bool didPlayerWin = WinCheck(turnIndicator, true);
+        if (turnsCounter < 9 || didPlayerWin) return false; //When the player won or all the spaces are not filled in yet, return false (no draw)
+
+        winningText.text = "DRAW";
+        winningPanel.gameObject.SetActive(true);
+        return true;
     }
 
     /// <summary>
@@ -282,6 +289,10 @@ public class GameController : MonoBehaviour
 
         return true;
     }
+
+    #endregion
+
+    #region UI 
 
     /// <summary>
     /// This method is to show the UI of the winner. 
@@ -350,10 +361,12 @@ public class GameController : MonoBehaviour
     /// /// </summary>
     public void Restart()
     {
-        Rematch((int)difficulty);
+        Rematch((int)difficulty); //Do a reset with the current difficulty
         playerOScore = 0;
         playerXScore = 0;
         xScoreTxt.text = "0";
         oScoreTxt.text = "0";
     }
+
+    #endregion
 }
