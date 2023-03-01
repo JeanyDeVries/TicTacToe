@@ -73,7 +73,11 @@ public class GameController : MonoBehaviour
         turnsCounter++;
         if (turnsCounter > 4) //Only after 4 turns is it possible to win
         {
-            if (CheckDraw() || WinCheck(turnIndicator, false)) return; //if there is a draw or a win, no need to run the rest of the code
+            if (CheckDraw() || WinCheck(turnIndicator, false))
+            {
+                UpdateGridInteractability(); //set the grid interactabily one last time, so that the non interactable buttons show
+                return; //if there is a draw or a win, no need to run the rest of the code
+            }
         }
         ChangeTurn();
         UpdateGridInteractability();
@@ -328,8 +332,28 @@ public class GameController : MonoBehaviour
             if (filledSpaces[i] < 0) //space is empty
             {
                 gridSpaces[i].interactable = (turnIndicator == Turn.PLAYER);
+
+                ChangeInteractableAlpha(gridSpaces[i], 0);
+            }
+            else
+            {
+                ChangeInteractableAlpha(gridSpaces[i], 1);
             }
         }
+    }
+
+    /// <summary>
+    /// Sets the alpha of the non interactable button.
+    /// </summary>
+    /// <param name="button">The button in the grid.</param>
+    /// <param name="alpha">The alpha amount we want to set to the button.</param>
+    void ChangeInteractableAlpha(Button button, int alpha)
+    {
+        ColorBlock colors = button.colors;
+        Color disabledColor = colors.disabledColor;
+        disabledColor.a = alpha;
+        colors.disabledColor = disabledColor;
+        button.colors = colors;
     }
 
     /// <summary>
