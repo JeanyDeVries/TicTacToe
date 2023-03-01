@@ -15,6 +15,7 @@ public class GameController : MonoBehaviour
     private enum Difficulty
     { 
         EASY,
+        NORMAL,
         UNBEATABLE
     }
 
@@ -31,6 +32,8 @@ public class GameController : MonoBehaviour
     private int turnsCounter; //Counts the number of turns played this game
     private int playerXScore, playerOScore;
     private const int EMPTY_SPACE = -100;  //Set the index for an empty space to -100, because 0 is the index of the player
+    private const float RANDOM_AMOUNT_EASY = 0.3f; //Set a random noise amount for the AI to make less optimal moves
+    private const float RANDOM_AMOUNT_NORMAL = 0.1f; //Set a random noise amount for the AI to make less optimal moves
     private int[] filledSpaces; //ID's which space is filled by which player
 
     void Start()
@@ -93,17 +96,7 @@ public class GameController : MonoBehaviour
     {
         yield return new WaitForSeconds(1);
 
-        switch (difficulty)
-        {
-            case Difficulty.EASY:
-                CalculateRandomOption(); 
-                break;
-            case Difficulty.UNBEATABLE:
-                CalculateBestOption();
-                break;
-            default:
-                break;
-        }
+        CalculateBestOption();
     }
 
     /// <summary>
@@ -119,24 +112,6 @@ public class GameController : MonoBehaviour
 
 
     #region AI calculations
-
-    /// <summary>
-    /// Calculates a random possible option and places the AI move there
-    /// </summary>
-    void CalculateRandomOption()
-    {
-        List<int> optionalOptions = new List<int>();
-        for (int i = 0; i < filledSpaces.Length; i++)
-        {
-            if (filledSpaces[i] < 0) //space is empty
-            {
-                optionalOptions.Add(i);
-            }
-        }
-
-        int randomSpace = Random.Range(0, optionalOptions.Count);
-        TicTacToeSpaceClicked(optionalOptions[randomSpace]);
-    }
 
     /// <summary>
     /// Calculates the best possible position using the minimax algorithm
@@ -156,6 +131,14 @@ public class GameController : MonoBehaviour
                 {
                     bestScore = score;
                     bestPos = i;
+                }
+                else if (score < bestScore) 
+                {
+                    // add some randomness to the move by occasionally making a suboptimal move      
+                    if (difficulty == Difficulty.EASY && Random.Range(0f, 1f) < RANDOM_AMOUNT_EASY)
+                        bestPos = i;                  
+                    if(difficulty == Difficulty.NORMAL && Random.Range(0f, 1f) < RANDOM_AMOUNT_NORMAL)
+                        bestPos = i; 
                 }
             }
         }
@@ -189,6 +172,7 @@ public class GameController : MonoBehaviour
 
         if (player == Turn.AI)
         {
+
             for (int i = 0; i < filledSpaces.Length; i++)
             {
                 if (filledSpaces[i] < 0) // Space is empty
@@ -305,13 +289,13 @@ public class GameController : MonoBehaviour
     {
         if (turnIndicator == Turn.PLAYER)
         {
-            winningText.text = "Player X has won the game!";
+            winningText.text = "You won the game!";
             playerXScore++;
             xScoreTxt.text = playerXScore.ToString();
         }
         else if (turnIndicator == Turn.AI)
         {
-            winningText.text = "Play O has won the game!";
+            winningText.text = "The AI won the game!";
             playerOScore++;
             oScoreTxt.text = playerOScore.ToString();
         }
@@ -367,6 +351,9 @@ public class GameController : MonoBehaviour
                 this.difficulty = Difficulty.EASY;
                 break;
             case 1:
+                this.difficulty = Difficulty.NORMAL;
+                break;
+            case 2:
                 this.difficulty = Difficulty.UNBEATABLE;
                 break;
             default:
