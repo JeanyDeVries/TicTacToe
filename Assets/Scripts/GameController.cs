@@ -84,7 +84,7 @@ public class GameController : MonoBehaviour
         turnsCounter++;
         if (turnsCounter > 4) //Only after 4 turns is it possible to win
         {
-            if (CheckDraw()) return; //if there is a draw, no need to run the rest of the code
+            if (CheckDraw() || WinCheck(turnIndicator, false)) return; //if there is a draw or a win, no need to run the rest of the code
         }
         ChangeTurn();
         UpdateGridInteractability();
@@ -99,7 +99,7 @@ public class GameController : MonoBehaviour
     /// <returns>Returns true when there is a draw in the game.</returns>
     bool CheckDraw()
     {
-        bool didPlayerWin = WinCheck(turnIndicator, false);
+        bool didPlayerWin = WinCheck(turnIndicator, true);
         if (turnsCounter < 9 || didPlayerWin) return false; //When the player won or all the spaces are not filled in yet, return false (no draw)
 
         winningText.text = "DRAW";
@@ -178,11 +178,11 @@ public class GameController : MonoBehaviour
     /// <returns>Returns a score of the outcome of the current option.</returns>
     int MiniMax(Turn player, int alpha, int beta)
     {
-        if (WinCheck( Turn.AI, true))
+        if (WinCheck( Turn.AI, false))
         {
             return +100;
         }
-        else if (WinCheck(Turn.PLAYER, true))
+        else if (WinCheck(Turn.PLAYER, false))
         {
             return -100;
         }
@@ -240,7 +240,7 @@ public class GameController : MonoBehaviour
     /// <param name="player">The turn of the user, player or AI.</param>
     /// <param name="checkAIScore">A check to see if this method is called for a check for the AI, if not then it is a true win of the player or AI.</param>
     /// <returns>Returns true when there is a win.</returns>
-    bool WinCheck(Turn player, bool checkAIScore)
+    bool WinCheck(Turn player, bool showWinnerDisplay)
     {
         int playerMark = (player == Turn.PLAYER) ? ((int)Turn.PLAYER + 1) : ((int)Turn.AI + 1);
 
@@ -257,7 +257,7 @@ public class GameController : MonoBehaviour
         {
             if (solutions[i] == 3 * playerMark)
             {
-                if(!checkAIScore)
+                if(showWinnerDisplay)
                     WinnerDisplay(i);
                 return true;
             }
@@ -324,8 +324,19 @@ public class GameController : MonoBehaviour
     /// <summary>
     /// This method sets all the settings to restart the round
     /// </summary>
-    public void Rematch()
+    public void Rematch(int difficulty) //Cannot set it to enum diffuculty so int is the only way
     {
+        switch (difficulty)
+        {
+            case 0:
+                this.difficulty = Difficulty.EASY;
+                break;
+            case 1:
+                this.difficulty = Difficulty.UNBEATABLE;
+                break;
+            default:
+                break;
+        }
         GameSetup();
         foreach (var line in winningLines)
         {
@@ -339,7 +350,7 @@ public class GameController : MonoBehaviour
     /// /// </summary>
     public void Restart()
     {
-        Rematch();
+        Rematch((int)difficulty);
         playerOScore = 0;
         playerXScore = 0;
         xScoreTxt.text = "0";
