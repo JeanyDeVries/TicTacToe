@@ -46,7 +46,7 @@ public class GameController : MonoBehaviour
     /// </summary>
     void GameSetup()
     {
-        turnIndicator = Turn.PLAYER; //X always starts at ticTacToe
+        turnIndicator = Turn.PLAYER; //X (the player) always starts at ticTacToe
         turnsCounter = 0;
         turnIcons[0].SetActive(true);
         turnIcons[1].SetActive(false);
@@ -69,10 +69,10 @@ public class GameController : MonoBehaviour
     /// <param name="gridNumber">This is the number of the buttons which are in the grid, the first one is 0 and the last one is 8.</param>
     public void TicTacToeSpaceClicked(int gridNumber)
     {
-        gridSpaces[gridNumber].image.sprite = playerSprites[(int)turnIndicator];
+        gridSpaces[gridNumber].image.sprite = playerSprites[(int)turnIndicator]; //Set the image to the correct player sprite
         gridSpaces[gridNumber].interactable = false;
 
-        filledSpaces[gridNumber] = (int)turnIndicator +1; //Add +1 to prevent logic errors
+        filledSpaces[gridNumber] = (int)turnIndicator +1; //Add plus 
         turnsCounter++;
         if (turnsCounter > 4) //Only after 4 turns is it possible to win
         {
@@ -127,7 +127,7 @@ public class GameController : MonoBehaviour
                 filledSpaces[i] = (int)Turn.AI + 1;
                 score = MiniMax(Turn.PLAYER, -1000, 1000);
                 filledSpaces[i] = EMPTY_SPACE;
-                if (bestScore < score)
+                if (score > bestScore)
                 {
                     bestScore = score;
                     bestPos = i;
@@ -142,6 +142,14 @@ public class GameController : MonoBehaviour
                 }
             }
         }
+
+        if (bestPos <= -1) //Check this and do a random option, for if something went wrong in the code (this is just a fallback)
+        {
+            CalculateRandomOption();
+            return;
+        }
+
+
         TicTacToeSpaceClicked(bestPos);
     }
 
@@ -209,6 +217,24 @@ public class GameController : MonoBehaviour
             }
             return beta;
         }
+    }
+
+    /// <summary>
+    /// Calculates a random possible option and places the AI move there
+    /// </summary>
+    void CalculateRandomOption()
+    {
+        List<int> optionalOptions = new List<int>();
+        for (int i = 0; i < filledSpaces.Length; i++)
+        {
+            if (filledSpaces[i] < 0) //space is empty
+            {
+                optionalOptions.Add(i);
+            }
+        }
+
+        int randomSpace = Random.Range(0, optionalOptions.Count);
+        TicTacToeSpaceClicked(optionalOptions[randomSpace]);
     }
 
     #endregion
